@@ -61,64 +61,156 @@ Before extracting frames, confirm the tools and input are ready.
    produce many frames and increase analysis time. Consider trimming to the relevant section."
    Proceed if the user confirms, but expect higher token usage.
 
-### Step 2: Extract key frames
+### Step 2: Extract and narrow
 
-Extract representative frames that capture each distinct screen state in the video.
+Find the bug by progressively narrowing down — start with a broad overview, then zoom into
+the problem area at higher frame rates. This avoids wasting tokens on irrelevant frames and
+catches subtle bugs (like a 50ms header bounce) that a single fixed-rate extraction would miss.
+
+Before extracting anything, check what the user said when they shared the video. If their
+message already describes the problem with enough detail to act on — a specific moment,
+a screen transition, a UI element misbehaving — skip Pass 1 and go straight to targeted
+extraction. The decision tree:
+
+- **"Check this video" / "이 영상 봐줘"** (no context) → Pass 1. You need the overview to
+  understand what's in the video.
+- **"The header flickers when the keyboard comes up" / "키보드 올라올 때 헤더가 깜빡여"**
+  (symptom described) → Pass 1, but focus your summary on keyboard/header transitions so
+  you can quickly identify the right time range for Pass 2.
+- **"Layout breaks during the screen transition around 3s" / "3초쯤에 화면 전환할 때 레이아웃이 깨져"**
+  (timing + symptom) → Skip Pass 1. Go directly to Pass 2 targeting 2.5s–4s.
+
+When skipping Pass 1, still extract 2-3 overview frames (first, middle, last) to confirm
+you're looking at the right screen before spending tokens on the zoom-in pass.
+
+#### Pass 1: Overview
+
+Get a bird's-eye view of the entire video. The goal is ~10-15 frames that summarize what
+happens across the full timeline. Present these to the user so they can point to the problem area.
 
 1. **Clear and create temp directory**
 
    ```bash
-   rm -rf /tmp/video-debug && mkdir -p /tmp/video-debug
+   rm -rf /tmp/video-debug && mkdir -p /tmp/video-debug/pass1
    ```
 
    Starting fresh prevents leftover frames from a previous run from mixing with new results.
 
-2. **Extract scene-change frames**
+2. **Extract overview frames**
+
+   Choose frame rate based on duration to keep the overview at ~10-15 frames:
+
+   | Duration | Strategy | Rationale |
+   |----------|----------|-----------|
+   | Under 3s | 5 fps | Very short clip — 5fps gives 10-15 frames covering every moment |
+   | 3s – 30s | 1 fps | One frame per second provides a clear timeline |
+   | 30s – 120s | 0.5 fps | One frame every 2 seconds keeps count manageable |
+   | Over 120s | scene detection (0.3) | Let FFmpeg pick the transitions |
 
    ```bash
-   ffmpeg -i "{video_path}" -vf "select='gt(scene,0.3)'" -vsync vfr /tmp/video-debug/frame_%03d.png
+   # Example for a 15-second video (1 fps):
+   ffmpeg -i "{video_path}" -vf "fps=1" /tmp/video-debug/pass1/frame_%03d.png
    ```
 
-   This writes one PNG per visual scene change. The threshold (0.3) controls sensitivity:
-   - `0.5` — stricter, fewer frames. Good when the video has many gradual transitions
-     and you are getting too many similar frames.
-   - `0.3` — default. Works well for most mobile screen recordings.
-   - `0.2` — looser, more frames. Use when subtle changes (toast messages, loading spinners)
-     are being missed.
-
-3. **Extract first and last frames**
-
-   Scene detection can miss the boundaries if there is no visual transition at the start or end.
-   Always capture these separately to establish the starting and ending state.
+3. **Always capture first and last frames**
 
    ```bash
-   ffmpeg -i "{video_path}" -vframes 1 /tmp/video-debug/frame_first.png
-   ffmpeg -sseof -1 -i "{video_path}" -vframes 1 /tmp/video-debug/frame_last.png
+   ffmpeg -i "{video_path}" -vframes 1 /tmp/video-debug/pass1/frame_first.png
+   ffmpeg -sseof -0.1 -i "{video_path}" -vframes 1 /tmp/video-debug/pass1/frame_last.png
    ```
 
-4. **Handle zero frames from scene detection**
+4. **Handle edge cases**
 
-   If scene detection produced no frames (common with mostly-static recordings), fall back to
-   extracting one frame every 2 seconds:
+   If scene detection produced no frames (common with mostly-static recordings), fall back
+   to 0.5 fps:
 
    ```bash
-   ffmpeg -i "{video_path}" -vf "fps=1/2" /tmp/video-debug/frame_%03d.png
+   ffmpeg -i "{video_path}" -vf "fps=1/2" /tmp/video-debug/pass1/frame_%03d.png
    ```
 
-5. **Limit frame count**
+   If any strategy produced more than 20 frames, keep every Nth frame to get down to ~15.
+   The overview is just for orientation — spending too many tokens here defeats the purpose
+   of the progressive approach.
+
+5. **Present the timeline to the user**
+
+   Read all overview frames and summarize each in one line with its timestamp:
+
+   "Here's what happens across the {duration}s video:
+   - 0s: Login screen with email field focused
+   - 1s: User taps submit, loading spinner appears
+   - 2s: Spinner still active
+   - 3s: Error toast appears briefly
+   - 4s: Screen returns to login, fields cleared
+   ...
+   Which part shows the problem? I'll zoom in on that section."
+
+   Wait for the user to identify the problem area before continuing.
+
+#### Pass 2: Zoom in
+
+Once the user identifies a time range (e.g., "the transition around 3-4 seconds"), extract
+that specific section at a higher frame rate to catch the details.
+
+1. **Create pass 2 directory**
 
    ```bash
-   ls /tmp/video-debug/frame_*.png | wc -l
+   mkdir -p /tmp/video-debug/pass2
    ```
 
-   If there are more than 20 frames (excluding first/last): re-run with a higher threshold
-   (try 0.5). If still too many, keep every Nth frame to get down to ~15-20.
+2. **Extract the target range at 10 fps**
 
-   Each frame consumes vision tokens during analysis. Beyond 20 frames, cost increases
-   without proportional insight. The first/last frames plus 15-18 scene-change frames are
-   enough to reconstruct most mobile app interactions.
+   Use `-ss` (start time) and `-t` (duration) to target just the problem area.
+   Add 0.5s padding on each side to capture the lead-in and aftermath.
 
-6. **Report results**
+   ```bash
+   # Example: user says "around 3-4 seconds" → extract 2.5s to 4.5s at 10fps
+   ffmpeg -ss 2.5 -i "{video_path}" -t 2.0 -vf "fps=10" /tmp/video-debug/pass2/frame_%03d.png
+   ```
 
-   Tell the user what was extracted before moving to analysis:
-   "Extracted {N} key frames from {duration}s video (scene threshold: {threshold}). Analyzing now."
+   10 fps at 2 seconds = ~20 frames. This gives 100ms resolution — enough to catch most
+   UI transitions, layout shifts, and animation glitches.
+
+3. **Analyze the zoomed frames**
+
+   Read all pass 2 frames and describe what's happening at each step. Focus on the visual
+   changes the user called out. Report findings with timestamps:
+
+   "Zoomed into 2.5s–4.5s at 10fps (20 frames):
+   - 2.5s: Header visible, normal state
+   - 2.8s: Keyboard appearing, content shifts up
+   - 2.9s: Header starts sliding out of view
+   - 3.0s: Header hidden — layout overlap detected
+   - 3.1s: Header snaps back into position
+   Found it: header bounces at 2.9-3.1s during keyboard transition."
+
+#### Pass 3: Fine detail (if needed)
+
+If the bug is a fast glitch (a 50ms header bounce, a single-frame layout overlap, a flash
+of misplaced content), pass 2 at 10fps might still miss it. When the user says the issue
+isn't clearly visible in pass 2, or when you see signs of a transition but can't pinpoint
+the exact frame:
+
+1. **Narrow further and increase fps to 20**
+
+   ```bash
+   mkdir -p /tmp/video-debug/pass3
+   # Example: narrow from 2.8s-3.2s at 20fps
+   ffmpeg -ss 2.8 -i "{video_path}" -t 0.4 -vf "fps=20" /tmp/video-debug/pass3/frame_%03d.png
+   ```
+
+   20 fps on a 0.4s window = ~8 frames at 50ms resolution. This catches even single-frame
+   glitches like layout thrashing, z-index flicker, or animation jank.
+
+2. **Report the exact bug frame**
+
+   At this resolution, you should be able to identify the exact moment and describe
+   what went wrong visually.
+
+#### Short video shortcut
+
+For videos under 3 seconds, the overview (pass 1 at 5fps) already provides enough detail
+to spot most issues. If the user's description matches what you see in pass 1, skip
+straight to analysis without a separate zoom-in pass. If something subtle is happening
+(e.g., a quick flash or bounce the user mentioned but you don't see), go directly to
+pass 2 on the full video at 10-20fps — the frame count will still be manageable.
