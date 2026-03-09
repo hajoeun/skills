@@ -4,16 +4,22 @@ description: >
   Analyzes device screen recordings (.mp4, .mov, .webm) to debug mobile app issues.
   Use when the user provides a video file and asks to fix a bug, review UI behavior,
   or analyze what's happening on screen. Also use when someone shares a screen recording
-  from QA, a tester's bug report video, a screen capture of unexpected behavior, or asks
-  you to look at a recording to find what went wrong. Extracts key frames via FFmpeg,
-  analyzes them visually, and connects findings to the project codebase.
+  from QA, a tester's bug report video, a screen capture of unexpected behavior, asks
+  you to look at a recording to find what went wrong, or says they have a screen recording
+  but have not pasted the file path yet. Extracts key frames via FFmpeg, analyzes them
+  visually, can help locate a recent video file when needed, and connects findings to
+  the project codebase.
 ---
 
 # Video Debug
 
-Debug mobile app issues by analyzing device screen recordings. Drop a video file
+Debug mobile app issues by analyzing device screen recordings. Share a video file
 (.mp4, .mov, .webm) and describe the problem — this pipeline extracts key frames,
 analyzes what happened on screen, traces the issue to source code, and applies a fix.
+
+You can provide a video file path directly, or just describe the problem and the skill
+can help locate a recent video file from your Downloads, Desktop, and current directory
+before continuing.
 
 FFmpeg is required for frame extraction. If not installed, Step 1 provides setup instructions.
 
@@ -21,6 +27,56 @@ FFmpeg is required for frame extraction. If not installed, Step 1 provides setup
 
 Follow these steps in order. Step 2 has built-in shortcuts — read the decision tree before
 extracting frames, since you may be able to skip the overview pass.
+
+### Step 0: Locate video file
+
+If the user already provided a video file path in their message, use that path as `{video_path}`
+and skip to Step 1.
+
+If no video path was provided, help the user find their video:
+
+1. **Ask before searching**
+
+   Say:
+
+   "I can search your Downloads, Desktop, and current directory for recent video files.
+   Want me to look there, or would you rather paste the path directly?"
+
+   Only run the search if the user agrees. If they prefer to paste the path, wait for it
+   and skip to Step 1.
+
+2. **Search common directories for recent videos**
+
+   ```bash
+   find ~/Downloads ~/Desktop . -maxdepth 2 -type f \( -iname "*.mp4" -o -iname "*.mov" -o -iname "*.webm" \) -mtime -1 -exec ls -t {} + 2>/dev/null | head -20
+   ```
+
+   If no results within the last 24 hours, widen to 7 days:
+
+   ```bash
+   find ~/Downloads ~/Desktop . -maxdepth 2 -type f \( -iname "*.mp4" -o -iname "*.mov" -o -iname "*.webm" \) -mtime -7 -exec ls -t {} + 2>/dev/null | head -20
+   ```
+
+3. **Present results to the user**
+
+   If videos were found, show the results in the order returned by the command above
+   (already newest first) and present a numbered list:
+
+   "Found these recent video files:
+   1. ~/Downloads/screen-recording-2026-03-09.mov (2 minutes ago)
+   2. ~/Downloads/bug-demo.mp4 (3 hours ago)
+   3. ~/Desktop/app-crash.webm (yesterday)
+
+   Which one should I analyze? Enter a number, or paste a different file path."
+
+4. **If no videos found**
+
+   "No recent video files found in Downloads, Desktop, or the current directory.
+
+   Paste the video file path here. Tip: you can drag a file from Finder into this terminal
+   to paste its path automatically."
+
+5. Set `{video_path}` to the chosen or provided path and continue to Step 1.
 
 ### Step 1: Validate environment
 
