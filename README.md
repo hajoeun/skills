@@ -7,7 +7,7 @@ Instead of scrubbing through a video yourself and describing what you see, hand 
 ## Install
 
 ```bash
-npx skills add hajoeun/video-debug
+npx skills add hajoeun/skills --skill video-debug
 ```
 
 **Requires [FFmpeg](https://ffmpeg.org/)** for frame extraction:
