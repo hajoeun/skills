@@ -19,7 +19,8 @@ FFmpeg is required for frame extraction. If not installed, Step 1 provides setup
 
 ## Pipeline
 
-Follow these steps in order. Do not skip steps.
+Follow these steps in order. Step 2 has built-in shortcuts — read the decision tree before
+extracting frames, since you may be able to skip the overview pass.
 
 ### Step 1: Validate environment
 
@@ -108,8 +109,14 @@ happens across the full timeline. Present these to the user so they can point to
    | Over 120s | scene detection (0.3) | Let FFmpeg pick the transitions |
 
    ```bash
-   # Example for a 15-second video (1 fps):
+   # Under 3s:
+   ffmpeg -i "{video_path}" -vf "fps=5" /tmp/video-debug/pass1/frame_%03d.png
+   # 3s – 30s:
    ffmpeg -i "{video_path}" -vf "fps=1" /tmp/video-debug/pass1/frame_%03d.png
+   # 30s – 120s:
+   ffmpeg -i "{video_path}" -vf "fps=1/2" /tmp/video-debug/pass1/frame_%03d.png
+   # Over 120s:
+   ffmpeg -i "{video_path}" -vf "select='gt(scene,0.3)'" -vsync vfr /tmp/video-debug/pass1/frame_%03d.png
    ```
 
 3. **Always capture first and last frames**
@@ -174,7 +181,14 @@ that specific section at a higher frame rate to catch the details.
 3. **Analyze the zoomed frames**
 
    Read all pass 2 frames and describe what's happening at each step. Focus on the visual
-   changes the user called out. Report findings with timestamps:
+   changes the user called out. Common patterns to look for:
+   - **Layout shift**: content jumps position between frames
+   - **Overlap/z-index**: elements stacking on top of each other (headers, modals, keyboards)
+   - **White flash**: screen goes blank during transitions (component unmount/remount)
+   - **Frozen state**: identical frames where animation or loading should be progressing
+   - **Clipping**: content cut off at screen edges or behind other elements
+
+   Report findings with timestamps:
 
    "Zoomed into 2.5s–4.5s at 10fps (20 frames):
    - 2.5s: Header visible, normal state
