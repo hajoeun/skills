@@ -1,0 +1,9 @@
+# Installed skill dependencies (managed by skills-lock.json)
+.agents/
+.claude
+
+# Conductor workspace
+.context/
+
+# macOS
+.DS_Store
