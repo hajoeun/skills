@@ -1,16 +1,17 @@
-# video-debug
+# skills
 
-Debug mobile app issues from screen recordings. Drop a video and describe the problem — Claude extracts key frames via FFmpeg, visually analyzes what happened, and traces the issue back to your code.
+Claude Code skills for video analysis and editing.
 
-Instead of scrubbing through a video yourself and describing what you see, hand the recording directly to Claude. The skill progressively narrows down: it starts with a low-fps overview of the full video, you point to the problem area, and it zooms in at higher frame rates until it catches the exact bug frame — even glitches as brief as 50ms.
+## Skills
 
-## Install
+| Skill | Description |
+|-------|-------------|
+| [video-debug](#video-debug) | Debug mobile app issues from screen recordings |
+| [video-editor](#video-editor) | SRT-based video cut editing with FFmpeg |
 
-```bash
-npx skills add hajoeun/skills --skill video-debug
-```
+## Prerequisites
 
-**Requires [FFmpeg](https://ffmpeg.org/)** for frame extraction:
+Both skills require [FFmpeg](https://ffmpeg.org/):
 
 ```bash
 # macOS
@@ -23,11 +24,23 @@ sudo apt install ffmpeg
 winget install FFmpeg
 ```
 
-## Quick start
+**video-editor** additionally requires Python 3.
+
+## video-debug
+
+Debug mobile app issues from screen recordings. Drop a video and describe the problem — Claude extracts key frames via FFmpeg, analyzes what happened, and traces the issue back to your code.
+
+### Install
+
+```bash
+npx skills add hajoeun/skills --skill video-debug
+```
+
+### Quick start
 
 1. Record the bug on your device (iOS screen recording, Android screencast, etc.)
 2. Drop the `.mp4`, `.mov`, or `.webm` file into the conversation
-3. Describe what's wrong — or just say "check this video" and let Claude ask
+3. Describe what's wrong — or just say "check this video"
 
 ```
 You:    [attaches recording.mov] The header flickers when the keyboard comes up
@@ -38,69 +51,45 @@ Claude: Zoomed into 0.8s–1.2s at 10fps (4 frames):
         Found it: header bounces for ~50ms during keyboard transition.
 ```
 
-## How it works
+The skill uses **progressive narrowing** — overview at 1 fps, zoom in at 10 fps, fine detail at 20 fps. It catches layout shifts, overlap issues, white flashes, frozen states, animation jank, and clipping.
 
-The skill uses a **progressive narrowing** approach rather than extracting all frames at once:
+See [SKILL.md](skills/video-debug/SKILL.md) for the full pipeline and customization options.
 
-```
-Pass 1: Overview (1 fps)     → "Here's what happens in the video"
-         ↓ you point to the problem area
-Pass 2: Zoom in (10 fps)     → "Found a layout shift at 3.0s"
-         ↓ need more detail?
-Pass 3: Fine detail (20 fps) → "Header overlaps content for exactly 50ms at 2.95s"
-```
+## video-editor
 
-If you already describe the problem when sharing the video, the skill skips the overview and jumps straight to targeted extraction — saving time and tokens.
+Rearrange video segments based on SRT subtitle timestamps. Provide a video file, an SRT subtitle file, and an editing guide document — Claude parses the subtitles, builds a cut-by-cut edit plan from your guide, and executes it via FFmpeg.
 
-### What it catches
+### Install
 
-- **Layout shifts** — content jumping position during transitions
-- **Overlap / z-index issues** — headers, modals, or keyboards stacking incorrectly
-- **White flashes** — blank screens during navigation (component unmount/remount)
-- **Frozen states** — spinners or loading indicators that never resolve
-- **Animation jank** — dropped frames, stuttering, or snapping during transitions
-- **Clipping** — content cut off at edges or hidden behind other elements
-
-## Customization
-
-After installing, add a **Project context** section to the SKILL.md to help Claude navigate your codebase:
-
-**React Native**
-```markdown
-## Project context
-- Framework: React Native 0.76
-- Screens: src/screens/
-- Components: src/components/
-- Navigation: React Navigation (Stack + Bottom Tab)
-- State: Zustand (src/stores/)
+```bash
+npx skills add hajoeun/skills --skill video-editor
 ```
 
-**Flutter**
-```markdown
-## Project context
-- Framework: Flutter 3.x
-- Screens: lib/screens/
-- Widgets: lib/widgets/
-- Navigation: GoRouter
-- State: Riverpod (lib/providers/)
+### Quick start
+
+1. Prepare three files:
+   - Video file (`.mp4`, `.mov`, `.mkv`)
+   - SRT subtitle file
+   - Editing guide document (`.md` or `.txt`) — see [format reference](skills/video-editor/references/editing_guide_format.md)
+2. Provide all three file paths to Claude
+3. Claude parses the SRT, builds an edit plan from your guide, shows it for confirmation, then executes the cuts
+
+### How it works
+
+```
+SRT file  ──→  parse_srt.py  ──→  JSON timestamps
+                                        │
+Guide doc ──→  Claude builds  ◄─────────┘
+               edit plan
+                  │
+            User confirms
+                  │
+              execute_edit.py  ──→  FFmpeg cuts + concat  ──→  Final video
 ```
 
-**SwiftUI**
-```markdown
-## Project context
-- Framework: SwiftUI (iOS 17+)
-- Views: Sources/Views/
-- ViewModels: Sources/ViewModels/
-- Navigation: NavigationStack
-- State: @Observable classes
-```
+The editing guide specifies which subtitle ranges to include, exclude, or compress, and in what order. Claude converts subtitle numbers to timestamps and assembles the segments into a single output file.
 
-## Limitations
-
-- **Video length**: Works best under 5 minutes. Longer recordings increase analysis time and token usage — trim to the relevant section if possible.
-- **Supported formats**: `.mp4`, `.mov`, `.webm` only.
-- **Static content bugs**: CSS/layout issues visible in a single screenshot are better debugged with a screenshot, not a video. This skill is for bugs that involve *motion* — transitions, animations, timing.
-- **Token cost**: Each extracted frame consumes vision tokens. The progressive approach minimizes this, but long videos with many passes will use more tokens.
+See [SKILL.md](skills/video-editor/SKILL.md) for the full pipeline, security details, and script documentation.
 
 ## License
 
