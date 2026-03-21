@@ -8,6 +8,7 @@ Claude Code skills for video analysis and editing.
 |-------|-------------|
 | [video-debug](#video-debug) | Debug mobile app issues from screen recordings |
 | [video-editor](#video-editor) | SRT-based video cut editing with FFmpeg |
+| [veast](#veast) | YouTube video production 6-phase pipeline |
 
 ## Prerequisites
 
@@ -24,7 +25,7 @@ sudo apt install ffmpeg
 winget install FFmpeg
 ```
 
-**video-editor** additionally requires Python 3.
+**video-editor** and **veast** additionally require Python 3.
 
 ## video-debug
 
@@ -90,6 +91,47 @@ Guide doc ──→  Claude builds  ◄─────────┘
 The editing guide specifies which subtitle ranges to include, exclude, or compress, and in what order. Claude converts subtitle numbers to timestamps and assembles the segments into a single output file.
 
 See [SKILL.md](skills/video-editor/SKILL.md) for the full pipeline, security details, and script documentation.
+
+## veast
+
+YouTube video production 6-phase pipeline — from concept planning to performance analysis. Manages concept, SRT segmentation, edit guide generation, title/thumbnail packaging, upload kit, and YouTube Analytics review as a single context.
+
+### Install
+
+```bash
+npx skills add hajoeun/skills --skill veast
+```
+
+### Prerequisites (optional, per phase)
+
+```bash
+# Phase 3 (video editing) — YAML guide parsing
+pip install pyyaml
+
+# Phase 6 (YouTube Analytics collection)
+pip install google-api-python-client google-auth google-auth-oauthlib
+```
+
+### Quick start
+
+```
+You:    /video new
+Claude: PD 에이전트 모드로 전환합니다. 어떤 유형의 영상인가요?
+        (인터뷰, 브이로그, 팟캐스트, 탐방로그, 숏폼)
+You:    인터뷰, 게스트는 홍길동
+Claude: [5단계 대화형 세션 → concept.md 생성]
+```
+
+### 6-phase pipeline
+
+1. **Concept** (`/video new`) — PD agent interactive session → `concept.md`
+2. **Edit Guide** (`/video transcript`, `/video edit-guide`) — SRT segmentation + AI edit guide → `edit-guide.yaml`
+3. **Editing** (`/video edit`) — Manual (DaVinci Resolve) or auto (FFmpeg)
+4. **Packaging** (`/video package`) — Title candidates + thumbnail direction → `packaging.md`
+5. **Upload Kit** (`/video timestamp`) — Timestamps + description → `upload-kit.md`
+6. **Analysis** (`/video analyze`) — YouTube Analytics + feedback loop → `review.md`
+
+See [SKILL.md](skills/veast/SKILL.md) for the full pipeline and reference map.
 
 ## License
 
