@@ -1,0 +1,44 @@
+{
+  "skill_name": "veast",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "다음 주에 스타트업 CTO 김민수님 인터뷰 촬영이 있는데, 질문 리스트 좀 준비해줘. 주제는 AI 스타트업 창업 경험이야. 이전에 올린 영상들 성과도 참고해서 질문 구성해줘.",
+      "expected_output": "concept.md 파일이 생성되고, 인터뷰이 프로필 요약과 의도가 명시된 질문 리스트가 포함되어야 한다. _history.json 참조 시도가 있어야 한다.",
+      "files": [],
+      "expectations": [
+        "concept.md 파일을 생성하거나 생성 계획을 제시한다",
+        "인터뷰이 정보(이름, 직업)가 포함된다",
+        "질문 리스트가 의도/목적과 함께 제공된다",
+        "_history.json 또는 이전 영상 성과를 참조하려고 시도한다",
+        "project.json 생성 또는 Phase 1 워크플로우를 따른다"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "이 SRT 파일로 편집 가이드를 만들어줘. 15분짜리 영상으로 구성하고 싶어. 훅이 강렬했으면 좋겠어.",
+      "expected_output": "veast generate-guide CLI를 사용하거나 AI로 편집 가이드(YAML)를 생성한다. Hook 구간이 포함된 sequence가 있고, veast validate로 검증한다.",
+      "files": ["evals/files/sample.srt"],
+      "expectations": [
+        "veast generate-guide 또는 veast edit --ai CLI를 사용한다",
+        "생성된 가이드에 Hook 라벨이 포함된 sequence가 있다",
+        "veast validate로 가이드 유효성을 검증한다",
+        "edit-guide.md 형태의 타임코드 테이블을 제공한다",
+        "예상 최종 영상 길이가 15분 내외이다"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "지난번 올린 영상 성과가 좀 별로인 것 같은데, CTR이 3%밖에 안 되고 평균 시청 시간도 짧아. 뭐가 문제인지 분석해주고 다음 영상에 반영할 점 정리해줘.",
+      "expected_output": "Phase 6 분석 워크플로우를 따라 CTR/리텐션 분석을 수행하고, 구체적 개선 액션이 포함된 리뷰를 제공한다.",
+      "files": [],
+      "expectations": [
+        "CTR이 낮은 원인을 분석한다 (제목/썸네일 관점)",
+        "평균 시청 시간이 짧은 원인을 분석한다 (리텐션/편집 구성 관점)",
+        "구체적인 개선 액션을 제시한다 (단순 '개선하세요'가 아닌)",
+        "다음 영상 브리핑 형태로 정리한다",
+        "review.md 생성 또는 _history.json 갱신을 시도한다"
+      ]
+    }
+  ]
+}
