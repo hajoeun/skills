@@ -7,7 +7,7 @@ description: >
   촬영 준비, SRT, 편집 구성, 제목 후보, 썸네일, CTR·리텐션 분석, 성과 리뷰,
   /video 명령어를 언급하면 반드시 트리거한다.
 metadata:
-  filePattern: "*.srt,project.json,_history.json,concept.md,edit-guide.md,packaging.md,upload-kit.md,review.md,analysis_context.md"
+  filePattern: "*.srt,project.md,concept.md,edit-guide.md,edit-guide.yaml,packaging.md,upload-kit.md,review.md,analysis_context.md,채널-대시보드.md"
   bashPattern: "manage_project|collect_analytics|execute_edit|save_review|parse_srt|resolve_xml"
 ---
 
@@ -17,9 +17,9 @@ metadata:
 
 ## 핵심 원칙
 
-- **하나의 영상 = 하나의 프로젝트**: 모든 단계의 데이터가 `project.json`에 누적된다. Phase 4에서 제목을 제안할 때 Phase 1의 기획 의도가 살아 있다.
+- **하나의 영상 = 하나의 프로젝트**: 모든 단계의 데이터가 `project.md`(frontmatter)에 누적된다. Phase 4에서 제목을 제안할 때 Phase 1의 기획 의도가 살아 있다.
 - **분석 → 액션**: "CTR이 낮습니다"에서 끝나지 않고, 구체적 개선 액션까지 제시한다.
-- **피드백 루프**: Phase 6의 성과 데이터가 `_history.json`에 누적되고, 다음 프로젝트의 Phase 1에 자동 주입된다.
+- **피드백 루프**: Phase 6의 성과 데이터가 `wiki/analytics/채널-대시보드.md`와 `wiki/learnings/*.md`에 누적되고, 다음 프로젝트의 Phase 1에 자동 주입된다.
 - **사람이 주도권**: AI는 제안하고, 사람이 결정한다. 편집(Phase 3)과 썸네일은 크리에이터의 감각 영역이다.
 
 ## Security
@@ -86,7 +86,7 @@ WORK_DIR=$(mktemp -d "${TMPDIR:-/tmp}/veast.XXXXXX")
 2. `references/phase-1-pd-agent.md`를 읽고 PD 에이전트 모드로 전환
 3. 크리에이터와 5단계 대화형 세션 진행
 4. `references/phase-1-concept.md`의 템플릿으로 `concept.md` 작성
-5. `_history.json`이 있으면 이전 영상 인사이트를 참조
+5. `wiki/analytics/채널-대시보드.md`가 있으면 이전 영상 인사이트를 참조
 6. Phase 1 완료:
    ```bash
    python3 scripts/manage_project.py complete-phase --dir <프로젝트> --phase 1 --result-file concept.md
@@ -107,7 +107,7 @@ python3 scripts/parse_srt.py '<srt_path>' --json
 ```
 
 - SRT 파싱 결과를 JSON으로 확인
-- project.json에 SRT 파일 경로 기록
+- `project.md` frontmatter에 SRT 파일 경로 기록
 
 **Step 2: 자막 교정** (`/video proofread`)
 
@@ -124,7 +124,7 @@ Whisper 자동 생성 자막의 오류를 concept.md 맥락 기반으로 교정�
 
 자막 교정이 완료된 SRT를 기반으로 PD 분석 → 편집 가이드를 생성한다.
 
-1. **이전 영상 최신 데이터 재수집**: `_history.json`의 최근 영상에 대해 `collect_analytics.py`를 재실행하여 성장 추이 확인 → insights 업데이트
+1. **이전 영상 최신 데이터 재수집**: `wiki/analytics/채널-대시보드.md`의 최근 영상에 대해 `collect_analytics.py`를 재실행하여 성장 추이 확인 → insights 업데이트
 2. **PD 분석**: 자막 전문 통독 → "보물 찾기" 체크리스트로 핵심 장면 추출 → concept.md 기획 의도 재검토 (촬영 전 기획 vs 실제 인터뷰 차이 분석)
 3. **제목/썸네일 방향 잠정 확정**: 이전 영상 학습 + 보물 분석을 종합하여 편집 구조를 결정할 방향성 설정 (Phase 4에서 최종 확정)
 4. `references/phase-2-segment.md`를 읽고 SRT 세그멘테이션 수행
@@ -257,37 +257,80 @@ python3 scripts/collect_analytics.py \
 
 ---
 
+## 위키 연동 (Obsidian vault)
+
+프로젝트 데이터는 Obsidian vault인 `$VEAST_VAULT_PATH`(기본값 `~/Movies/Youtube/`) 안에 저장된다. 영상 폴더 자체가 프로젝트 디렉토리이며, 추상 지식은 별도 `wiki/` 트리에 누적된다.
+
+### 경로 규칙
+
+```
+$VEAST_VAULT_PATH/                       # 기본: ~/Movies/Youtube/
+├── {YYMMDD 제목}/                       # 프로젝트 폴더 (예: 260416 민상기인터뷰/)
+│   ├── project.md                       # 프로젝트 상태 (frontmatter)
+│   ├── concept.md                       # Phase 1 산출물
+│   ├── edit-guide.yaml                  # Phase 2 산출물
+│   ├── packaging.md                     # Phase 4 산출물
+│   ├── upload-kit.md                    # Phase 5 산출물
+│   ├── review.md                        # Phase 6 산출물
+│   └── *.srt, *.mov, ...                # 자막·영상 원본
+├── wiki/
+│   ├── videos/{YYMMDD 제목}.md          # 퍼블리시된 영상 카드
+│   ├── guests/{이름}.md                  # 게스트 인물 카드
+│   ├── topics/{주제}.md                  # 주제 노드
+│   ├── learnings/{학습}.md               # 검증된 패턴
+│   ├── strategy/채널-전략.md             # 채널 전략
+│   └── analytics/채널-대시보드.md        # 채널 집계 (구 `_history.json` 대체)
+├── index.md                             # 전체 카탈로그 (자동 갱신)
+├── log.md                               # 이벤트 로그 (자동 append)
+└── resources/                           # 채널 자산 (썸네일 소스 등)
+```
+
+### 폴더 명명 규칙: `YYMMDD 제목`
+
+예: `260416 민상기인터뷰`, `260325 이승민인터뷰`. `manage_project.py new`가 이 형식으로 폴더를 생성한다.
+
+### Phase 완료 시 위키 자동 업데이트 훅
+
+`manage_project.py complete-phase` 및 `sync`는 해당 Phase가 done으로 전환되면 `wiki_updater.update_for_phase()`를 호출한다. Vault가 없거나 `python-frontmatter`가 미설치이면 조용히 no-op.
+
+| Phase | 갱신 대상 |
+|-------|-----------|
+| 1 (컨셉) | `wiki/guests/{name}.md` upsert, `log.md` append, `index.md` refresh |
+| 2 (편집 가이드) | `edit-guide.yaml`의 sections에서 주제 추출 → `wiki/topics/*.md` upsert, `log.md` append |
+| 3 (편집) | `log.md` append |
+| 4 (패키징) | `wiki/videos/{folder}.md` 초안(title 등), `log.md` append, `index.md` refresh |
+| 5 (업로드킷) | `wiki/videos/{folder}.md` published 상태·youtube_video_id, `log.md` append |
+| 6 (분석) | `wiki/videos/{folder}.md` 성과 지표, `wiki/learnings/*.md` verified_count, `wiki/strategy/채널-전략.md` 관찰 기록, `wiki/analytics/채널-대시보드.md` 집계 재계산, `log.md` append, `index.md` refresh |
+
+---
+
 ## 프로젝트 컨텍스트
 
-모든 Phase의 데이터는 두 개의 JSON 파일로 관리된다.
+프로젝트당 하나의 `project.md`가 영상 폴더 루트에 저장된다.
 
-### project.json — 현재 영상 프로젝트
-
-프로젝트당 하나. `~/.veast/projects/{project-id}/project.json`에 저장.
-
-```
-project.json
-├── id: "2026-03-15-인터뷰-홍길동"
-├── current_phase: 1~6
-├── type: 인터뷰 | 브이로그 | 팟캐스트 | 탐방로그 | 숏폼
-├── meta: { guest, target_audience, target_views, expected_length, filming_date, youtube_video_id }
-├── phase_results: { "1"~"6": { status, result_file, started_at, completed_at } }
-└── insights_from_previous: [이전 영상 인사이트]
-```
-
-### _history.json — 채널 히스토리
-
-채널 전체에서 하나. `~/.veast/projects/_history.json`에 저장.
-Phase 6 완료 시 자동 갱신되며, Phase 1에서 참조한다.
-
-```
-_history.json
-├── channel: { name, updated_at }
-├── insights: { avg_ctr, avg_retention_rate, top_performing_topics, title_patterns, retention_patterns }
-└── videos: [ { project_id, title, type, published_at, metrics, learnings } ]
+```yaml
+---
+type: project
+id: "260416 민상기인터뷰"
+folder: "260416 민상기인터뷰"
+video_type: 인터뷰                   # 인터뷰 / 브이로그 / 팟캐스트 / 탐방로그 / 숏폼
+guest: "[[민상기]]"                  # wikilink로 wiki/guests/* 연결
+filming_date: 2026-04-16
+current_phase: 1                     # 1–6
+phase_results:
+  1: { status, result_file, started_at, completed_at }
+  ...
+  6: { ... }
+status: draft                        # draft / ready / published
+youtube_video_id: null               # Phase 5 이후 설정
+metrics: { views_4w, ctr, retention_rate, ... }   # Phase 6 이후
+learnings: [ "[[3컷 훅]]", ... ]                    # Phase 6 이후
+---
 ```
 
-→ 상세: `references/project-context.md`
+채널 집계(평균 CTR/리텐션, 상위 주제 등)는 `wiki/analytics/채널-대시보드.md`의 frontmatter가 보관하며 Phase 6에서 자동 재계산된다.
+
+→ 상세 스키마: `references/project-context.md`, `references/wiki-frontmatter.md`
 
 ---
 
@@ -330,8 +373,9 @@ python3 scripts/save_review.py --project-dir '<프로젝트>' --review-file '<re
 
 - **Python 3**: 필수
 - **FFmpeg**: 영상 편집(Phase 3) 시 필요
-- **PyYAML**: 편집 가이드 파싱 시 필요 — `pip install pyyaml`
-- **Google API**: Phase 6 YouTube 수집 시 필요 — `pip install google-api-python-client google-auth google-auth-oauthlib`
+- **Python 의존성**: `pip install -r skills/veast/requirements.txt`
+  - `python-frontmatter` + `pyyaml` — 프로젝트/위키 파일 I/O
+  - `google-api-python-client`, `google-auth`, `google-auth-oauthlib` — Phase 6 YouTube 수집
 
 ---
 
@@ -352,15 +396,15 @@ python3 scripts/save_review.py --project-dir '<프로젝트>' --review-file '<re
 5. **한국어 출력**: 사용자 대면 산출물은 한국어로 작성한다.
    이 도구의 주 사용자는 한국어 유튜브 크리에이터이며, 산출물을 그대로 유튜브에 올리는 경우가 많다.
 
-6. **컨텍스트 유지**: 각 Phase는 이전 Phase의 산출물을 참조한다. project.json을 항상 최신 상태로 유지한다.
+6. **컨텍스트 유지**: 각 Phase는 이전 Phase의 산출물을 참조한다. `project.md`를 항상 최신 상태로 유지한다.
    Phase 간 맥락 단절이 기존 도구들의 가장 큰 한계였고, Veast는 이를 해결하기 위해 만들어졌다.
 
-7. **프로젝트 파일 접근**: 프로젝트 파일은 `~/.veast/projects/`에 저장된다. 워크스페이스 밖이라 Read/Edit 도구로 직접 접근할 수 없으면, `.veast → ~/.veast` symlink를 통해 접근한다.
-   예: `.veast/projects/2026-03-20-인터뷰-홍길동/concept.md`
-   symlink가 없으면 `ln -s ~/.veast .veast`로 생성한 뒤 재시도한다.
+7. **프로젝트 파일 접근**: 프로젝트 파일은 `$VEAST_VAULT_PATH/{YYMMDD 제목}/`(기본값 `~/Movies/Youtube/...`)에 저장된다. 워크스페이스 밖이라 Read/Edit 도구로 직접 접근할 수 없으면, `.veast → $VEAST_VAULT_PATH` symlink를 통해 접근한다.
+   예: `.veast/260416 민상기인터뷰/concept.md`
+   symlink가 없으면 `ln -s "$VEAST_VAULT_PATH" .veast`(또는 기본 경로로 `ln -s ~/Movies/Youtube .veast`)로 생성한 뒤 재시도한다.
 
 8. **Phase 상태 자동 동기화**: `/video` 커맨드 실행 시작 시 `manage_project.py sync`를 먼저 실행한다.
-   결과 파일이 존재하지만 project.json이 pending인 경우를 자동 보정한다. 수동 `complete-phase` 호출을 잊어도 다음 커맨드에서 자동 복구된다.
+   결과 파일이 존재하지만 `project.md`가 pending인 경우를 자동 보정하고, 동기화된 Phase에 대해 위키 자동 업데이트 훅도 함께 실행된다.
 
 ---
 
@@ -378,5 +422,6 @@ python3 scripts/save_review.py --project-dir '<프로젝트>' --review-file '<re
 | `references/phase-4-packaging.md` | 패키징 제안 프롬프트 — 제목 전략, 썸네일 방향 |
 | `references/phase-5-upload-kit.md` | 업로드 키트 프롬프트 — 타임스탬프, 설명란 |
 | `references/phase-6-review.md` | 성과 분석 프롬프트 — Analytics 분석, 피드백 루프 |
-| `references/project-context.md` | project.json / _history.json 전체 스키마 |
+| `references/project-context.md` | vault 경로 규칙 + `project.md` 스키마 |
+| `references/wiki-frontmatter.md` | 위키 페이지(project/video/guest/topic/learning/dashboard) frontmatter 스키마 |
 | `references/editing-guide-format.md` | YAML 편집 가이드 포맷 레퍼런스 |
