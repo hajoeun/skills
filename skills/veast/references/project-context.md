@@ -1,23 +1,24 @@
 # 프로젝트 컨텍스트 — vault 경로 규칙 + `project.md` 스키마
 
-veast는 모든 프로젝트 데이터를 Obsidian vault(`$VEAST_VAULT_PATH`, 기본값 `~/Movies/Youtube/`) 안에 직접 저장한다. 영상 폴더 자체가 프로젝트 디렉토리이며, 추상 지식은 별도 `wiki/` 트리가 담당한다.
+veast는 모든 프로젝트 데이터를 Obsidian vault(`$VEAST_VAULT_PATH`, 기본값 `~/Movies/Youtube/`) 안에 직접 저장한다. 프로젝트 폴더는 `projects/` 하위에 모이고, 추상 지식은 별도 `wiki/` 트리가 담당한다.
 
 ## 디렉토리 컨벤션
 
 ```
 $VEAST_VAULT_PATH/                       # 예: ~/Movies/Youtube/
-├── 260101 홍길동인터뷰/                  # 영상 폴더 = 프로젝트 디렉토리
-│   ├── project.md                       # 프로젝트 상태 (frontmatter)
-│   ├── concept.md                       # Phase 1 산출물
-│   ├── interview_홍길동.srt             # Phase 2 입력
-│   ├── edit-guide.yaml                  # Phase 2 산출물
-│   ├── edit-guide.md                    # Phase 2 산출물(사람이 읽기용)
-│   ├── packaging.md                     # Phase 4 산출물
-│   ├── upload-kit.md                    # Phase 5 산출물
-│   ├── review.md                        # Phase 6 산출물
-│   ├── analytics_{72h|1w|4w}.json       # Phase 6 원본 API 응답
-│   ├── analysis_context.md              # Phase 6 구조화 컨텍스트
-│   └── *.mov, *.mp4                     # 영상 원본 (gitignored)
+├── projects/
+│   └── 260101 홍길동인터뷰/              # 영상 폴더 = 프로젝트 디렉토리
+│       ├── project.md                   # 프로젝트 상태 (frontmatter)
+│       ├── concept.md                   # Phase 1 산출물
+│       ├── interview_홍길동.srt         # Phase 2 입력
+│       ├── edit-guide.yaml              # Phase 2 산출물
+│       ├── edit-guide.md                # Phase 2 산출물(사람이 읽기용)
+│       ├── packaging.md                 # Phase 4 산출물
+│       ├── upload-kit.md                # Phase 5 산출물
+│       ├── review.md                    # Phase 6 산출물
+│       ├── analytics_{72h|1w|4w}.json   # Phase 6 원본 API 응답
+│       ├── analysis_context.md          # Phase 6 구조화 컨텍스트
+│       └── *.mov, *.mp4                 # 영상 원본 (gitignored)
 ├── wiki/
 │   ├── videos/                          # 퍼블리시된 영상 카드
 │   ├── guests/                          # 게스트 인물 카드
@@ -30,7 +31,7 @@ $VEAST_VAULT_PATH/                       # 예: ~/Movies/Youtube/
 └── resources/                           # 채널 자산
 ```
 
-폴더 이름은 `YYMMDD 제목` 형식(예: `260101 홍길동인터뷰`). `manage_project.py new`가 이 형식으로 생성한다.
+폴더 이름은 `YYMMDD 제목` 형식(예: `260101 홍길동인터뷰`)으로 `projects/` 하위에 위치한다. `manage_project.py new`가 이 형식으로 생성한다.
 
 ---
 

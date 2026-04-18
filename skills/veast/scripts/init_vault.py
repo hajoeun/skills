@@ -40,9 +40,10 @@ AGENT_MD = """# AGENT.md — vault 유지보수 규칙
 
 ## 2레이어 구조
 
-1. **영상 폴더** — vault 루트 직계에 `YYMMDD 제목` 형식으로 배치 (예: `260101 홍길동인터뷰/`).
-   프로젝트 단위 작업 파일을 모두 담는다: `project.md`(frontmatter 상태), `concept.md`,
-   `edit-guide.yaml`, `packaging.md`, `upload-kit.md`, `review.md`, SRT·영상 원본.
+1. **영상 폴더** — vault 루트 하위 `projects/` 폴더 내에 `YYMMDD 제목` 형식으로
+   배치 (예: `projects/260101 홍길동인터뷰/`). 프로젝트 단위 작업 파일을 모두 담는다:
+   `project.md`(frontmatter 상태), `concept.md`, `edit-guide.yaml`, `packaging.md`,
+   `upload-kit.md`, `review.md`, SRT·영상 원본.
 
 2. **추상 지식 위키 (`wiki/`)** — 영상을 가로지르는 지식을 축적한다.
    - `wiki/videos/` — 퍼블리시된 영상 카드
@@ -81,7 +82,7 @@ veast 스크립트(`wiki_updater.py`)가 위키 페이지를 쓸 때 따르는 �
 ## 스킬 비활성 상태에서 수동 편집
 
 veast 스크립트를 거치지 않고 직접 편집할 때:
-- `YYMMDD 제목` 폴더 명명 규칙 유지
+- 프로젝트 폴더는 `projects/` 하위에 `YYMMDD 제목` 명명 규칙으로 유지
 - `project.md`의 `phase_results`를 직접 수정할 때는 `updated_at` 필드도 갱신
 - 새로 만든 게스트/주제 노드도 frontmatter `type` 필드 필수
 
@@ -203,6 +204,22 @@ def ensure_wiki_tree(vault: Path, reporter: Reporter) -> None:
         if not gitkeep.exists():
             gitkeep.write_text("", encoding="utf-8")
         reporter.created(folder, kind="dir")
+
+
+def ensure_projects_tree(vault: Path, reporter: Reporter) -> None:
+    folder = vault / "projects"
+    gitkeep = folder / ".gitkeep"
+    if folder.is_dir() and gitkeep.exists():
+        reporter.skipped(folder, "already exists")
+        return
+    if reporter.dry_run:
+        reporter.created(folder, kind="dir")
+        reporter.created(gitkeep)
+        return
+    folder.mkdir(parents=True, exist_ok=True)
+    if not gitkeep.exists():
+        gitkeep.write_text("", encoding="utf-8")
+    reporter.created(folder, kind="dir")
 
 
 def ensure_agent_md(vault: Path, reporter: Reporter, force: bool) -> None:
@@ -439,6 +456,7 @@ def run_init(
 
     reporter.info("\n[files] scaffolding...")
     ensure_wiki_tree(vault, reporter)
+    ensure_projects_tree(vault, reporter)
     ensure_agent_md(vault, reporter, force=force)
     ensure_index_md(vault, reporter)
     ensure_log_md(vault, reporter)

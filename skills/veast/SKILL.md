@@ -305,14 +305,15 @@ python3 skills/veast/scripts/init_vault.py --obsidian=strict # CLI 없으면 실
 
 ```
 $VEAST_VAULT_PATH/                       # 기본: ~/Movies/Youtube/
-├── {YYMMDD 제목}/                       # 프로젝트 폴더 (예: 260101 홍길동인터뷰/)
-│   ├── project.md                       # 프로젝트 상태 (frontmatter)
-│   ├── concept.md                       # Phase 1 산출물
-│   ├── edit-guide.yaml                  # Phase 2 산출물
-│   ├── packaging.md                     # Phase 4 산출물
-│   ├── upload-kit.md                    # Phase 5 산출물
-│   ├── review.md                        # Phase 6 산출물
-│   └── *.srt, *.mov, ...                # 자막·영상 원본
+├── projects/
+│   └── {YYMMDD 제목}/                   # 프로젝트 폴더 (예: 260101 홍길동인터뷰/)
+│       ├── project.md                   # 프로젝트 상태 (frontmatter)
+│       ├── concept.md                   # Phase 1 산출물
+│       ├── edit-guide.yaml              # Phase 2 산출물
+│       ├── packaging.md                 # Phase 4 산출물
+│       ├── upload-kit.md                # Phase 5 산출물
+│       ├── review.md                    # Phase 6 산출물
+│       └── *.srt, *.mov, ...            # 자막·영상 원본
 ├── wiki/
 │   ├── videos/{YYMMDD 제목}.md          # 퍼블리시된 영상 카드
 │   ├── guests/{이름}.md                  # 게스트 인물 카드
@@ -327,7 +328,7 @@ $VEAST_VAULT_PATH/                       # 기본: ~/Movies/Youtube/
 
 ### 폴더 명명 규칙: `YYMMDD 제목`
 
-예: `260101 홍길동인터뷰`, `260215 김철수인터뷰`. `manage_project.py new`가 이 형식으로 폴더를 생성한다.
+예: `260101 홍길동인터뷰`, `260215 김철수인터뷰`. `manage_project.py new`가 이 형식으로 `projects/` 하위에 폴더를 생성한다.
 
 ### Phase 완료 시 위키 자동 업데이트 훅
 
@@ -444,8 +445,8 @@ python3 scripts/save_review.py --project-dir '<프로젝트>' --review-file '<re
 6. **컨텍스트 유지**: 각 Phase는 이전 Phase의 산출물을 참조한다. `project.md`를 항상 최신 상태로 유지한다.
    Phase 간 맥락 단절이 기존 도구들의 가장 큰 한계였고, Veast는 이를 해결하기 위해 만들어졌다.
 
-7. **프로젝트 파일 접근**: 프로젝트 파일은 `$VEAST_VAULT_PATH/{YYMMDD 제목}/`(기본값 `~/Movies/Youtube/...`)에 저장된다. 워크스페이스 밖이라 Read/Edit 도구로 직접 접근할 수 없으면, `.veast → $VEAST_VAULT_PATH` symlink를 통해 접근한다.
-   예: `.veast/260101 홍길동인터뷰/concept.md`
+7. **프로젝트 파일 접근**: 프로젝트 파일은 `$VEAST_VAULT_PATH/projects/{YYMMDD 제목}/`(기본값 `~/Movies/Youtube/projects/...`)에 저장된다. 워크스페이스 밖이라 Read/Edit 도구로 직접 접근할 수 없으면, `.veast → $VEAST_VAULT_PATH` symlink를 통해 접근한다.
+   예: `.veast/projects/260101 홍길동인터뷰/concept.md`
    symlink가 없으면 `ln -s "$VEAST_VAULT_PATH" .veast`(또는 기본 경로로 `ln -s ~/Movies/Youtube .veast`)로 생성한 뒤 재시도한다.
 
 8. **Phase 상태 자동 동기화**: `/video` 커맨드 실행 시작 시 `manage_project.py sync`를 먼저 실행한다.

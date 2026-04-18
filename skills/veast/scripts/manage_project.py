@@ -2,8 +2,9 @@
 """Project management — vault-based with frontmatter project.md.
 
 Projects live inside the Obsidian vault at `$VEAST_VAULT_PATH` (default
-`~/Movies/Youtube/`). Each project is a folder named `YYMMDD 제목` containing
-a `project.md` with YAML frontmatter (schema: see references/wiki-frontmatter.md).
+`~/Movies/Youtube/`). Each project is a folder under `projects/`, named
+`YYMMDD 제목` and containing a `project.md` with YAML frontmatter
+(schema: see references/wiki-frontmatter.md).
 
 Channel-level aggregation (previously `_history.json`) now lives in
 `wiki/analytics/채널-대시보드.md` and is maintained by `wiki_updater`.
@@ -103,7 +104,7 @@ def generate_folder_name(title: str, d: date | None = None) -> str:
 
 
 def get_project_dir(folder: str, root: Path | None = None) -> Path:
-    return (root or get_vault_root()) / folder
+    return (root or get_vault_root()) / "projects" / folder
 
 
 def ensure_project_dir(folder: str, root: Path | None = None) -> Path:
@@ -268,11 +269,12 @@ _FOLDER_PATTERN = re.compile(r"^\d{6} .+")
 
 def list_projects(root: Path | None = None) -> list[Path]:
     root = root or get_vault_root()
-    if not root.is_dir():
+    projects_dir = root / "projects"
+    if not projects_dir.is_dir():
         return []
     return sorted(
         d
-        for d in root.iterdir()
+        for d in projects_dir.iterdir()
         if d.is_dir()
         and _FOLDER_PATTERN.match(d.name)
         and (d / PROJECT_FILENAME).exists()
