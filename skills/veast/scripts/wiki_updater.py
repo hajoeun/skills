@@ -374,13 +374,11 @@ def append_log(vault: Path, project: dict, phase: int) -> None:
 
 def refresh_index(vault: Path) -> None:
     folders = []
-    for entry in sorted(vault.iterdir()):
-        if not entry.is_dir():
-            continue
-        if entry.name in {"wiki", "resources"} or entry.name.startswith("."):
-            continue
-        if (entry / "project.md").exists():
-            folders.append(entry.name)
+    projects_dir = vault / "projects"
+    if projects_dir.is_dir():
+        for entry in sorted(projects_dir.iterdir()):
+            if entry.is_dir() and (entry / "project.md").exists():
+                folders.append(entry.name)
     lines = ["# Vault Index", ""]
     lines.append(f"Last refreshed: {_utcnow()}")
     lines.append("")
