@@ -24,6 +24,15 @@ PROJECT_FILENAME = "project.json"
 
 VALID_TYPES = ["인터뷰", "브이로그", "팟캐스트", "탐방로그", "숏폼"]
 
+# Phase → 결과 파일 매핑 (Phase 3은 수동 편집이므로 제외)
+PHASE_RESULT_FILES = {
+    1: "concept.md",
+    2: "edit-guide.yaml",
+    4: "packaging.md",
+    5: "upload-kit.md",
+    6: "review.md",
+}
+
 # ---------------------------------------------------------------------------
 # Security
 # ---------------------------------------------------------------------------
@@ -200,6 +209,28 @@ def complete_phase(project: dict, phase: int, result_file: str | None = None) ->
     return project
 
 
+def sync_phases(project: dict, project_dir: Path) -> tuple[dict, list[int]]:
+    """결과 파일 존재 여부로 phase_results를 동기화. 변경된 Phase 목록 반환."""
+    synced = []
+    for phase, filename in PHASE_RESULT_FILES.items():
+        key = str(phase)
+        result = project["phase_results"][key]
+        file_path = project_dir / filename
+        if file_path.exists() and result["status"] != "done":
+            result["status"] = "done"
+            result["result_file"] = filename
+            result["completed_at"] = _now()
+            synced.append(phase)
+    if synced:
+        max_done = max(
+            int(k) for k, v in project["phase_results"].items()
+            if v["status"] == "done"
+        )
+        project["current_phase"] = max_done
+        project["updated_at"] = _now()
+    return project, synced
+
+
 # ---------------------------------------------------------------------------
 # History CRUD
 # ---------------------------------------------------------------------------
@@ -328,6 +359,17 @@ def _cmd_complete_phase(args: argparse.Namespace) -> None:
     print(f"Phase {args.phase} completed.")
 
 
+def _cmd_sync(args: argparse.Namespace) -> None:
+    project_dir = _validate_path(args.dir)
+    project = load_project(project_dir)
+    project, synced = sync_phases(project, project_dir)
+    if synced:
+        save_project(project, project_dir)
+        print(f"Synced phases: {', '.join(str(p) for p in synced)}")
+    else:
+        print("Already in sync.")
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Veast project management")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -361,6 +403,11 @@ def main() -> None:
     p_complete.add_argument("--phase", required=True, type=int, choices=range(1, 7), help="Phase number")
     p_complete.add_argument("--result-file", help="Result file name")
     p_complete.set_defaults(func=_cmd_complete_phase)
+
+    # sync
+    p_sync = sub.add_parser("sync", help="Sync phase status from result files")
+    p_sync.add_argument("--dir", required=True, help="Project directory")
+    p_sync.set_defaults(func=_cmd_sync)
 
     args = parser.parse_args()
     args.func(args)

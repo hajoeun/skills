@@ -8,7 +8,7 @@ description: >
   /video 명령어를 언급하면 반드시 트리거한다.
 metadata:
   filePattern: "*.srt,project.json,_history.json,concept.md,edit-guide.md,packaging.md,upload-kit.md,review.md,analysis_context.md"
-  bashPattern: "manage_project|collect_analytics|execute_edit|save_review|parse_srt"
+  bashPattern: "manage_project|collect_analytics|execute_edit|save_review|parse_srt|resolve_xml"
 ---
 
 # Veast — 유튜브 영상 제작 파이프라인
@@ -54,7 +54,8 @@ WORK_DIR=$(mktemp -d "${TMPDIR:-/tmp}/veast.XXXXXX")
 |--------|-------|------|
 | `/video new` | 1 | 새 프로젝트 생성 + PD 에이전트 컨셉 세션 |
 | `/video transcript` | 2 | SRT 자막 파일 업로드 + 파싱 |
-| `/video edit-guide` | 2 | AI 편집 가이드 생성 (킬러 피처) |
+| `/video proofread` | 2 | Whisper 자막 교정 (고유명사 + 문맥) |
+| `/video edit-guide` | 2 | PD 분석 + AI 편집 가이드 생성 (킬러 피처) |
 | `/video edit` | 3 | 편집 가이드 기반 영상 편집 (FFmpeg) |
 | `/video package` | 4 | 제목 후보 + 썸네일 방향 제안 |
 | `/video timestamp` | 5 | 타임스탬프 + 설명란 자동 생성 |
@@ -108,28 +109,45 @@ python3 scripts/parse_srt.py '<srt_path>' --json
 - SRT 파싱 결과를 JSON으로 확인
 - project.json에 SRT 파일 경로 기록
 
-**Step 2: 편집 가이드 생성** (`/video edit-guide`)
+**Step 2: 자막 교정** (`/video proofread`)
 
-1. `references/phase-2-segment.md`를 읽고 SRT 세그멘테이션 수행
+Whisper 자동 생성 자막의 오류를 concept.md 맥락 기반으로 교정한다.
+
+1. 원본 SRT 백업 (`파일명_원본.srt`)
+2. **1단계 — 고유명사 일괄 교정**: concept.md에서 인명/서비스명/기술 용어를 추출하고, SRT 전체를 grep하여 Whisper 오인식 패턴 탐색 → 확인된 오류 일괄 교정
+3. **2단계 — 문맥 기반 오탈자 교정**: 200줄씩 구간별 읽기 → 교정 대상을 확신도별(확실/높은 확률/판단 보류)로 분류하여 사용자에게 제시 → **사용자 검토 후 승인된 항목만 반영**
+4. **3단계 — 검증**: `parse_srt.py --validate` + 원본 대비 diff 확인 + 엔트리 수 동일 확인
+
+→ 상세: `references/phase-2-proofread.md` (교정 프로세스 + Whisper 오류 패턴 목록)
+
+**Step 3: 편집 가이드 생성** (`/video edit-guide`)
+
+자막 교정이 완료된 SRT를 기반으로 PD 분석 → 편집 가이드를 생성한다.
+
+1. **이전 영상 최신 데이터 재수집**: `_history.json`의 최근 영상에 대해 `collect_analytics.py`를 재실행하여 성장 추이 확인 → insights 업데이트
+2. **PD 분석**: 자막 전문 통독 → "보물 찾기" 체크리스트로 핵심 장면 추출 → concept.md 기획 의도 재검토 (촬영 전 기획 vs 실제 인터뷰 차이 분석)
+3. **제목/썸네일 방향 잠정 확정**: 이전 영상 학습 + 보물 분석을 종합하여 편집 구조를 결정할 방향성 설정 (Phase 4에서 최종 확정)
+4. `references/phase-2-segment.md`를 읽고 SRT 세그멘테이션 수행
    - 주제별 분할, 관심도 스코어링
-2. `references/phase-2-edit-guide.md`를 읽고 편집 가이드 생성
+5. `references/phase-2-edit-guide.md`를 읽고 편집 가이드 생성
    - 훅(Hook) 선정, 구성 재배치, 편집 포인트 도출
-3. `references/editing-guide-format.md`의 YAML 포맷으로 `edit-guide.yaml` 작성
-4. 검증:
+6. `references/editing-guide-format.md`의 YAML 포맷으로 `edit-guide.yaml` 작성
+7. 검증:
    ```bash
    python3 scripts/execute_edit.py validate --guide '<guide.yaml>' --srt '<file.srt>'
    ```
-5. Phase 2 완료:
+8. Phase 2 완료:
    ```bash
    python3 scripts/manage_project.py complete-phase --dir <프로젝트> --phase 2 --result-file edit-guide.yaml
    ```
 
-→ 상세: `references/phase-2-edit-guide.md`
+→ 상세: `references/phase-2-edit-guide.md` (PD 분석 + 보물 찾기 + 편집 가이드)
+→ 자막 교정: `references/phase-2-proofread.md`
 → YAML 포맷: `references/editing-guide-format.md`
 
 ### Phase 3: 영상 편집
 
-편집 가이드를 참조하여 영상을 편집한다. 두 가지 경로:
+편집 가이드를 참조하여 영상을 편집한다. 세 가지 경로:
 
 **A. 수동 편집 (DaVinci Resolve)**
 편집 가이드의 타임코드 테이블을 참조하여 수동 편집. Claude의 역할은 편집 가이드에 대한 질문에 답하는 것뿐이다.
@@ -146,6 +164,24 @@ python3 scripts/execute_edit.py execute --video '<input.mp4>' --srt '<input.srt>
 # 빠른 모드 (스트림 카피, 키프레임 단위)
 python3 scripts/execute_edit.py execute --video '<input.mp4>' --srt '<input.srt>' --guide '<guide.yaml>' --output '<output.mp4>' --fast
 ```
+
+**C. FCPXML 재배치 (DaVinci Resolve 라운드트립)** — `/video resolve`
+
+DaVinci Resolve에서 수동 세팅한 타임라인(멀티카메라, 오디오, 프레임 오버레이)을 FCPXML로 export → 편집 가이드에 따라 클립 순서를 재배치 → 수정된 FCPXML을 Resolve로 re-import. 트랜스폼, 볼륨, 연결 클립이 모두 보존된다.
+
+```bash
+# 검증 (가이드 + SRT + FCPXML 구조 확인)
+python3 scripts/resolve_xml.py validate --fcpxml '<input.fcpxml>' --srt '<input.srt>' --guide '<guide.yaml>'
+
+# 미리보기 (세그먼트 매핑만 출력, 파일 생성 없음)
+python3 scripts/resolve_xml.py preview --fcpxml '<input.fcpxml>' --srt '<input.srt>' --guide '<guide.yaml>'
+
+# 실행 (재배치된 FCPXML + SRT 생성)
+python3 scripts/resolve_xml.py reorder --fcpxml '<input.fcpxml>' --srt '<input.srt>' --guide '<guide.yaml>' --output-fcpxml '<reordered.fcpxml>' --output-srt '<reordered.srt>'
+```
+
+**지원 버전:** FCPXML 1.8~1.13 (DaVinci Resolve 18/19)
+**제한사항:** DaVinci Resolve는 자막(Subtitle 트랙)을 FCPXML에 포함하지 않으므로, SRT를 별도로 재배치한다. 색보정과 Fusion 이펙트는 FCPXML에 미포함.
 
 ### Phase 4: 패키징 제안 — `/video package`
 
@@ -266,16 +302,22 @@ python3 scripts/manage_project.py list
 python3 scripts/manage_project.py status --dir '<프로젝트>'
 python3 scripts/manage_project.py start-phase --dir '<프로젝트>' --phase 2
 python3 scripts/manage_project.py complete-phase --dir '<프로젝트>' --phase 2 --result-file edit-guide.yaml
+python3 scripts/manage_project.py sync --dir '<프로젝트>'
 
 # SRT 파싱
 python3 scripts/parse_srt.py '<file.srt>' --json
 python3 scripts/parse_srt.py '<file.srt>' --validate
 python3 scripts/parse_srt.py '<file.srt>' --range 10 50
 
-# 편집 가이드 검증 + 영상 편집
+# 편집 가이드 검증 + 영상 편집 (FFmpeg)
 python3 scripts/execute_edit.py validate --guide '<guide.yaml>' --srt '<file.srt>'
 python3 scripts/execute_edit.py preview --video '<input.mp4>' --srt '<file.srt>' --guide '<guide.yaml>'
 python3 scripts/execute_edit.py execute --video '<input.mp4>' --srt '<file.srt>' --guide '<guide.yaml>' --output '<output.mp4>'
+
+# FCPXML 재배치 (DaVinci Resolve 라운드트립)
+python3 scripts/resolve_xml.py validate --fcpxml '<input.fcpxml>' --srt '<file.srt>' --guide '<guide.yaml>'
+python3 scripts/resolve_xml.py preview --fcpxml '<input.fcpxml>' --srt '<file.srt>' --guide '<guide.yaml>'
+python3 scripts/resolve_xml.py reorder --fcpxml '<input.fcpxml>' --srt '<file.srt>' --guide '<guide.yaml>' --output-fcpxml '<reordered.fcpxml>' --output-srt '<reordered.srt>'
 
 # YouTube Analytics 수집
 python3 scripts/collect_analytics.py --project-dir '<프로젝트>' --period 72h
@@ -317,6 +359,9 @@ python3 scripts/save_review.py --project-dir '<프로젝트>' --review-file '<re
    예: `.veast/projects/2026-03-20-인터뷰-홍길동/concept.md`
    symlink가 없으면 `ln -s ~/.veast .veast`로 생성한 뒤 재시도한다.
 
+8. **Phase 상태 자동 동기화**: `/video` 커맨드 실행 시작 시 `manage_project.py sync`를 먼저 실행한다.
+   결과 파일이 존재하지만 project.json이 pending인 경우를 자동 보정한다. 수동 `complete-phase` 호출을 잊어도 다음 커맨드에서 자동 복구된다.
+
 ---
 
 ## Reference Map
@@ -327,8 +372,9 @@ python3 scripts/save_review.py --project-dir '<프로젝트>' --review-file '<re
 |------|------|
 | `references/phase-1-concept.md` | 컨셉 도출 프롬프트 + 워크플로우 + concept.md 템플릿 |
 | `references/phase-1-pd-agent.md` | PD 에이전트 모드 — 대화형 컨셉 세션 플로우, 시스템 프롬프트 |
+| `references/phase-2-proofread.md` | Whisper 자막 교정 — 고유명사/문맥 교정 프로세스, 사용자 협업 프로토콜, 오류 패턴 목록 |
 | `references/phase-2-segment.md` | SRT 세그멘테이션 프롬프트 — 주제 분할, 관심도 스코어링 |
-| `references/phase-2-edit-guide.md` | 편집 가이드 생성 프롬프트 — 훅 선정, 재배치 로직 |
+| `references/phase-2-edit-guide.md` | PD 분석 + 보물 찾기 + 편집 가이드 생성 — 훅 선정, 재배치 로직 |
 | `references/phase-4-packaging.md` | 패키징 제안 프롬프트 — 제목 전략, 썸네일 방향 |
 | `references/phase-5-upload-kit.md` | 업로드 키트 프롬프트 — 타임스탬프, 설명란 |
 | `references/phase-6-review.md` | 성과 분석 프롬프트 — Analytics 분석, 피드백 루프 |

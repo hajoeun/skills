@@ -617,11 +617,11 @@ def run_collect(project_dir: Path, period: str, token_path: str | None = None) -
     # Determine published_at
     filming_date = project.get("meta", {}).get("filming_date")
     if filming_date:
-        published_at = datetime.fromisoformat(filming_date)
+        published_at = datetime.fromisoformat(filming_date.replace("Z", "+00:00"))
         if published_at.tzinfo is None:
             published_at = published_at.replace(tzinfo=timezone.utc)
     else:
-        published_at = datetime.fromisoformat(project["created_at"])
+        published_at = datetime.fromisoformat(project["created_at"].replace("Z", "+00:00"))
         if published_at.tzinfo is None:
             published_at = published_at.replace(tzinfo=timezone.utc)
 
