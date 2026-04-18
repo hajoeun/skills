@@ -1,14 +1,14 @@
 ---
 name: veast
 description: >
-  유튜브 영상 제작 6단계 파이프라인: 인터뷰 기획·질문 리스트, SRT 자막 세그멘테이션,
-  편집 가이드(훅 선정·구간 재배치), 제목·썸네일 패키징, 타임스탬프·설명란 생성,
-  YouTube Analytics 성과 분석·피드백 루프. 사용자가 영상 기획, 인터뷰 질문지,
-  촬영 준비, SRT, 편집 구성, 제목 후보, 썸네일, CTR·리텐션 분석, 성과 리뷰,
-  /video 명령어를 언급하면 반드시 트리거한다.
+  유튜브 영상 제작 6단계 파이프라인 + Obsidian vault 통합: vault 초기화(init),
+  인터뷰 기획·질문 리스트, SRT 자막 세그멘테이션, 편집 가이드(훅 선정·구간 재배치),
+  제목·썸네일 패키징, 타임스탬프·설명란 생성, YouTube Analytics 성과 분석·피드백 루프.
+  사용자가 영상 기획, 인터뷰 질문지, 촬영 준비, SRT, 편집 구성, 제목 후보, 썸네일,
+  CTR·리텐션 분석, 성과 리뷰, vault 초기화, /video 명령어를 언급하면 반드시 트리거한다.
 metadata:
   filePattern: "*.srt,project.md,concept.md,edit-guide.md,edit-guide.yaml,packaging.md,upload-kit.md,review.md,analysis_context.md,채널-대시보드.md"
-  bashPattern: "manage_project|collect_analytics|execute_edit|save_review|parse_srt|resolve_xml"
+  bashPattern: "manage_project|collect_analytics|execute_edit|save_review|parse_srt|resolve_xml|init_vault"
 ---
 
 # Veast — 유튜브 영상 제작 파이프라인
@@ -52,6 +52,7 @@ WORK_DIR=$(mktemp -d "${TMPDIR:-/tmp}/veast.XXXXXX")
 
 | 커맨드 | Phase | 설명 |
 |--------|-------|------|
+| `/video init` | - | Vault 초기화 (최초 1회 또는 재동기화) |
 | `/video new` | 1 | 새 프로젝트 생성 + PD 에이전트 컨셉 세션 |
 | `/video transcript` | 2 | SRT 자막 파일 업로드 + 파싱 |
 | `/video proofread` | 2 | Whisper 자막 교정 (고유명사 + 문맥) |
@@ -257,6 +258,45 @@ python3 scripts/collect_analytics.py \
 
 ---
 
+## Vault 초기화 — `/video init`
+
+최초 설치 시 한 번 실행하여 vault를 veast 구조에 맞게 준비한다. 멱등하므로 재실행해도 안전하다.
+
+### 사전조건
+
+1. **Obsidian 1.12.7+ installer** 업데이트 (<https://obsidian.md/download>)
+2. Obsidian 실행 → **Settings → General → Command line interface** 활성화
+   - macOS: sudo 심볼릭링크 프롬프트 수락 (최초 1회)
+   - Linux: `~/.local/bin`이 `PATH`에 포함되어 있는지 확인
+3. vault 폴더(예: `~/Movies/Youtube/`)를 Obsidian에서 **Open folder as vault**로 한 번 열기
+4. `pip install -r skills/veast/requirements.txt`
+
+### 실행
+
+```bash
+cd ~/Movies/Youtube
+python3 skills/veast/scripts/init_vault.py                   # 기본: 파일 스캐폴딩 + Obsidian CLI 자동 연동
+python3 skills/veast/scripts/init_vault.py --git             # + git init
+python3 skills/veast/scripts/init_vault.py --dry-run         # 미리보기
+python3 skills/veast/scripts/init_vault.py --force           # AGENT.md 덮어쓰기
+python3 skills/veast/scripts/init_vault.py --obsidian=off    # Obsidian CLI 단계 생략 (CI/headless)
+python3 skills/veast/scripts/init_vault.py --obsidian=strict # CLI 없으면 실패
+```
+
+### 자동 수행
+
+- `wiki/{videos,guests,topics,strategy,learnings,analytics}/` + `.gitkeep`
+- `AGENT.md`, `index.md`, `log.md` 시드 생성
+- `.gitignore` 패턴 머지 (영상 확장자·Obsidian 캐시 등; 기존 내용 보존)
+- Obsidian 커뮤니티 플러그인 설치·활성화: **Dataview**, **Templater**, **Graph Analysis**
+- Obsidian **Excluded files** 패턴 머지 (`*.mp4`, `*.mov`, `*.vrew`, `*.psd`, `*.fcpxml` 등)
+
+### 재실행 멱등성
+
+누락된 것만 추가하고 기존 파일은 건드리지 않는다. AGENT.md를 교체하려면 `--force`.
+
+---
+
 ## 위키 연동 (Obsidian vault)
 
 프로젝트 데이터는 Obsidian vault인 `$VEAST_VAULT_PATH`(기본값 `~/Movies/Youtube/`) 안에 저장된다. 영상 폴더 자체가 프로젝트 디렉토리이며, 추상 지식은 별도 `wiki/` 트리에 누적된다.
@@ -339,6 +379,11 @@ learnings: [ "[[3컷 훅]]", ... ]                    # Phase 6 이후
 `scripts/` 디렉토리의 Python 스크립트를 Bash 도구로 호출한다.
 
 ```bash
+# Vault 초기화 (최초 1회)
+python3 scripts/init_vault.py                       # 기본 (파일 스캐폴딩 + Obsidian CLI)
+python3 scripts/init_vault.py --git --force         # git init + AGENT.md 덮어쓰기
+python3 scripts/init_vault.py --dry-run             # 미리보기
+
 # 프로젝트 관리
 python3 scripts/manage_project.py new --type 인터뷰 --title 홍길동
 python3 scripts/manage_project.py list
