@@ -6,10 +6,10 @@ veast는 모든 프로젝트 데이터를 Obsidian vault(`$VEAST_VAULT_PATH`, �
 
 ```
 $VEAST_VAULT_PATH/                       # 예: ~/Movies/Youtube/
-├── 260416 민상기인터뷰/                  # 영상 폴더 = 프로젝트 디렉토리
+├── 260101 홍길동인터뷰/                  # 영상 폴더 = 프로젝트 디렉토리
 │   ├── project.md                       # 프로젝트 상태 (frontmatter)
 │   ├── concept.md                       # Phase 1 산출물
-│   ├── interview_민상기.srt             # Phase 2 입력
+│   ├── interview_홍길동.srt             # Phase 2 입력
 │   ├── edit-guide.yaml                  # Phase 2 산출물
 │   ├── edit-guide.md                    # Phase 2 산출물(사람이 읽기용)
 │   ├── packaging.md                     # Phase 4 산출물
@@ -30,7 +30,7 @@ $VEAST_VAULT_PATH/                       # 예: ~/Movies/Youtube/
 └── resources/                           # 채널 자산
 ```
 
-폴더 이름은 `YYMMDD 제목` 형식(예: `260416 민상기인터뷰`). `manage_project.py new`가 이 형식으로 생성한다.
+폴더 이름은 `YYMMDD 제목` 형식(예: `260101 홍길동인터뷰`). `manage_project.py new`가 이 형식으로 생성한다.
 
 ---
 
@@ -41,11 +41,11 @@ $VEAST_VAULT_PATH/                       # 예: ~/Movies/Youtube/
 ```yaml
 ---
 type: project
-id: "260416 민상기인터뷰"            # 폴더명과 동일
-folder: "260416 민상기인터뷰"
+id: "260101 홍길동인터뷰"            # 폴더명과 동일
+folder: "260101 홍길동인터뷰"
 video_type: 인터뷰                   # 인터뷰 / 브이로그 / 팟캐스트 / 탐방로그 / 숏폼
-title: "민상기 인터뷰"                # 내부 작업 제목 (최종 제목은 Phase 4에서 별도 결정)
-guest: "[[민상기]]"                  # wiki/guests/*.md로 연결 (인터뷰/팟캐스트일 때)
+title: "홍길동 인터뷰"                # 내부 작업 제목 (최종 제목은 Phase 4에서 별도 결정)
+guest: "[[홍길동]]"                  # wiki/guests/*.md로 연결 (인터뷰/팟캐스트일 때)
 target_audience: "개발자, 스타트업 관계자"
 target_views: 10000
 expected_length: "15 minutes"
@@ -107,7 +107,7 @@ updated_at: "2026-04-16T09:00:00Z"
 ---
 type: dashboard
 channel:
-  name: "하조은"
+  name: "내 채널"
   updated_at: "2026-04-30T20:00:00Z"
 insights:
   avg_ctr: 5.8
@@ -121,8 +121,8 @@ insights:
     hook_in_first_30s: { avg_retention: 48.2, count: 6 }
     slow_intro: { avg_retention: 35.1, count: 4 }
 videos:                               # 최근 N개 영상 요약 (프루닝됨)
-  - id: "260416 민상기인터뷰"
-    link: "[[260416 민상기인터뷰]]"
+  - id: "260101 홍길동인터뷰"
+    link: "[[260101 홍길동인터뷰]]"
     published: 2026-04-30
     metrics: { views_4w: 8200, ctr: 6.3, retention_rate: 45.2 }
 ---

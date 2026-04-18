@@ -265,7 +265,7 @@ python3 scripts/collect_analytics.py \
 
 ```
 $VEAST_VAULT_PATH/                       # 기본: ~/Movies/Youtube/
-├── {YYMMDD 제목}/                       # 프로젝트 폴더 (예: 260416 민상기인터뷰/)
+├── {YYMMDD 제목}/                       # 프로젝트 폴더 (예: 260101 홍길동인터뷰/)
 │   ├── project.md                       # 프로젝트 상태 (frontmatter)
 │   ├── concept.md                       # Phase 1 산출물
 │   ├── edit-guide.yaml                  # Phase 2 산출물
@@ -287,7 +287,7 @@ $VEAST_VAULT_PATH/                       # 기본: ~/Movies/Youtube/
 
 ### 폴더 명명 규칙: `YYMMDD 제목`
 
-예: `260416 민상기인터뷰`, `260325 이승민인터뷰`. `manage_project.py new`가 이 형식으로 폴더를 생성한다.
+예: `260101 홍길동인터뷰`, `260215 김철수인터뷰`. `manage_project.py new`가 이 형식으로 폴더를 생성한다.
 
 ### Phase 완료 시 위키 자동 업데이트 훅
 
@@ -311,10 +311,10 @@ $VEAST_VAULT_PATH/                       # 기본: ~/Movies/Youtube/
 ```yaml
 ---
 type: project
-id: "260416 민상기인터뷰"
-folder: "260416 민상기인터뷰"
+id: "260101 홍길동인터뷰"
+folder: "260101 홍길동인터뷰"
 video_type: 인터뷰                   # 인터뷰 / 브이로그 / 팟캐스트 / 탐방로그 / 숏폼
-guest: "[[민상기]]"                  # wikilink로 wiki/guests/* 연결
+guest: "[[홍길동]]"                  # wikilink로 wiki/guests/* 연결
 filming_date: 2026-04-16
 current_phase: 1                     # 1–6
 phase_results:
@@ -400,7 +400,7 @@ python3 scripts/save_review.py --project-dir '<프로젝트>' --review-file '<re
    Phase 간 맥락 단절이 기존 도구들의 가장 큰 한계였고, Veast는 이를 해결하기 위해 만들어졌다.
 
 7. **프로젝트 파일 접근**: 프로젝트 파일은 `$VEAST_VAULT_PATH/{YYMMDD 제목}/`(기본값 `~/Movies/Youtube/...`)에 저장된다. 워크스페이스 밖이라 Read/Edit 도구로 직접 접근할 수 없으면, `.veast → $VEAST_VAULT_PATH` symlink를 통해 접근한다.
-   예: `.veast/260416 민상기인터뷰/concept.md`
+   예: `.veast/260101 홍길동인터뷰/concept.md`
    symlink가 없으면 `ln -s "$VEAST_VAULT_PATH" .veast`(또는 기본 경로로 `ln -s ~/Movies/Youtube .veast`)로 생성한 뒤 재시도한다.
 
 8. **Phase 상태 자동 동기화**: `/video` 커맨드 실행 시작 시 `manage_project.py sync`를 먼저 실행한다.

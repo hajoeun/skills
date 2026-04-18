@@ -17,10 +17,10 @@ veast 스킬이 vault(`$VEAST_VAULT_PATH`, 기본 `~/Movies/Youtube/`)에 기록
 ```yaml
 ---
 type: project
-id: "260416 민상기인터뷰"            # 폴더명과 동일
-folder: "260416 민상기인터뷰"
+id: "260101 홍길동인터뷰"            # 폴더명과 동일
+folder: "260101 홍길동인터뷰"
 video_type: 인터뷰                   # 인터뷰 / 브이로그 / 팟캐스트 / 탐방로그 / 숏폼
-guest: "[[민상기]]"                  # wiki/guests/민상기.md로 연결 (인터뷰/팟캐스트일 때)
+guest: "[[홍길동]]"                  # wiki/guests/홍길동.md로 연결 (인터뷰/팟캐스트일 때)
 filming_date: 2026-04-16
 target_audience: 개발자, 스타트업 관계자
 target_views: 10000
@@ -53,11 +53,11 @@ updated_at: "2026-04-16T09:00:00Z"
 ```yaml
 ---
 type: video
-id: "260416 민상기인터뷰"
-project: "[[260416 민상기인터뷰/project]]"
-title: "해커톤 1등의 비밀 | 민상기"
+id: "260101 홍길동인터뷰"
+project: "[[260101 홍길동인터뷰/project]]"
+title: "해커톤 1등의 비밀 | 홍길동"
 video_type: 인터뷰
-guest: "[[민상기]]"
+guest: "[[홍길동]]"
 topics:
   - "[[바이브코딩]]"
   - "[[스타트업]]"
@@ -87,13 +87,13 @@ learnings:
 ```yaml
 ---
 type: guest
-name: 민상기
+name: 홍길동
 aliases: []
 title: 스타트업 CTO
 topics:
   - "[[바이브코딩]]"
 videos:
-  - "[[260416 민상기인터뷰]]"
+  - "[[260101 홍길동인터뷰]]"
 first_appearance: 2026-04-16
 ---
 ```
@@ -112,8 +112,8 @@ type: topic
 name: 바이브코딩
 video_count: 6
 videos:
-  - "[[260416 민상기인터뷰]]"
-  - "[[260325 이승민인터뷰]]"
+  - "[[260101 홍길동인터뷰]]"
+  - "[[260215 김철수인터뷰]]"
 related:
   - "[[AI 코딩]]"
 ---
@@ -135,8 +135,8 @@ category: 편집                        # 편집 / 기획 / 패키징 / 타임�
 verified_count: 2
 confidence: medium                    # low / medium / high (verified_count 임계값 기반)
 videos:
-  - "[[260416 민상기인터뷰]]"
-  - "[[260325 이승민인터뷰]]"
+  - "[[260101 홍길동인터뷰]]"
+  - "[[260215 김철수인터뷰]]"
 first_observed: 2026-03-25
 last_verified: 2026-04-16
 ---
@@ -154,7 +154,7 @@ last_verified: 2026-04-16
 ---
 type: dashboard
 channel:
-  name: "하조은"
+  name: "내 채널"
   updated_at: "2026-04-30T20:00:00Z"
 insights:
   avg_ctr: 5.8
@@ -171,8 +171,8 @@ insights:
     hook_in_first_30s: { avg_retention: 48.2, count: 6 }
     slow_intro: { avg_retention: 35.1, count: 4 }
 videos:                               # wiki/videos/*.md 요약 (가장 최신 N개)
-  - id: "260416 민상기인터뷰"
-    link: "[[260416 민상기인터뷰]]"
+  - id: "260101 홍길동인터뷰"
+    link: "[[260101 홍길동인터뷰]]"
     published: 2026-04-30
     metrics: { views_4w: 8200, ctr: 6.3, retention_rate: 45.2 }
 ---

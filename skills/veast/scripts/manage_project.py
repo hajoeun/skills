@@ -91,7 +91,7 @@ def _sanitize_title(title: str) -> str:
 
 
 def generate_folder_name(title: str, d: date | None = None) -> str:
-    """Generate a folder name like '260416 민상기인터뷰'."""
+    """Generate a folder name like '260101 홍길동인터뷰'."""
     d = d or date.today()
     stamp = d.strftime("%y%m%d")
     return f"{stamp} {_sanitize_title(title)}"

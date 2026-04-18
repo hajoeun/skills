@@ -310,7 +310,7 @@ def update_dashboard(project: dict, wiki_dir: Path) -> None:
     post = load_page(page)
     meta = dict(post.metadata)
     meta.setdefault("type", "dashboard")
-    channel = dict(meta.get("channel") or {"name": "하조은"})
+    channel = dict(meta.get("channel") or {"name": "내 채널"})
     channel["updated_at"] = _utcnow()
     meta["channel"] = channel
 
