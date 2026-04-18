@@ -1,0 +1,6 @@
+python-frontmatter>=1.0
+pyyaml>=6.0
+google-api-python-client
+google-auth
+google-auth-oauthlib
+google-auth-httplib2

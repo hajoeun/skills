@@ -250,3 +250,44 @@ review_path = save_review_and_update_history(
 - `_history.json` 갱신 (Step 2)
 - `project.json`의 Phase 6 상태 `completed`
 - `project.json`의 `files.review`에 파일 경로 기록
+
+---
+
+## 성과 추적 재수집
+
+Phase 6 리뷰 이후에도 영상 성과는 계속 변한다. 초기에 구독자 기반으로 시작한 영상이 이후 알고리즘 추천을 타면서 조회수가 급증하는 경우가 흔하다. 이 성장 추이를 다음 영상 기획에 반영하려면, 다음 영상 Phase 2 진입 시 이전 영상의 최신 데이터를 재수집해야 한다.
+
+### 트리거
+
+- `/video edit-guide` 실행 시 자동 (`references/phase-2-edit-guide.md` Step 0a 참조)
+- 사용자가 명시적으로 재분석 요청 시
+
+### 절차
+
+1. `collect_analytics.py --period 4w` 재실행
+2. 이전 `review.md`의 핵심 지표와 비교 테이블 생성
+3. 성장/하락 원인 추정 분석 (알고리즘 추천? 검색 키워드? 외부 유입?)
+4. `_history.json`의 해당 영상 metrics + learnings 업데이트
+5. 새로운 인사이트를 다음 영상 기획에 반영
+
+### 토큰 만료 대응
+
+YouTube OAuth 토큰(`~/.veast/youtube_token.json`)은 일정 기간 후 만료된다.
+
+- **토큰 파일**: `~/.veast/youtube_token.json`
+- **클라이언트 시크릿**: `~/.veast/client_secrets.json`
+- **만료 시 재발급**:
+  ```python
+  from google_auth_oauthlib.flow import InstalledAppFlow
+  flow = InstalledAppFlow.from_client_secrets_file(
+      '~/.veast/client_secrets.json',
+      scopes=[
+          'https://www.googleapis.com/auth/yt-analytics.readonly',
+          'https://www.googleapis.com/auth/youtube.readonly'
+      ]
+  )
+  creds = flow.run_local_server(port=0)
+  from pathlib import Path
+  Path('~/.veast/youtube_token.json').expanduser().write_text(creds.to_json())
+  ```
+- Bash 도구로 직접 실행 가능 (브라우저 인증이 자동으로 열림)

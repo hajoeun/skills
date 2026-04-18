@@ -20,11 +20,11 @@ from pathlib import Path
 # Import from sibling module
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from manage_project import (  # noqa: E402
-    load_history,
     load_project,
     save_project,
     start_phase,
 )
+import wiki_updater  # noqa: E402
 
 # ---------------------------------------------------------------------------
 # Security
@@ -37,7 +37,23 @@ def _validate_path(path_str: str) -> Path:
     if any(c in path_str for c in _SHELL_META):
         print(f"Error: path contains shell metacharacters: {path_str}", file=sys.stderr)
         sys.exit(1)
-    return Path(path_str).resolve()
+    return Path(path_str).expanduser().resolve()
+
+
+def _resolve_title(project: dict) -> str:
+    """Pick a display title from the project frontmatter.
+
+    Supports the new top-level `guest` field (string or dict) and falls back
+    to the legacy `meta.guest` shape.
+    """
+    for candidate in (project.get("guest"), project.get("meta", {}).get("guest")):
+        if isinstance(candidate, dict) and candidate.get("name"):
+            return str(candidate["name"])
+        if isinstance(candidate, str) and candidate:
+            import re as _re
+            m = _re.match(r"\[\[([^\]|]+)(?:\|[^\]]+)?\]\]", candidate.strip())
+            return m.group(1) if m else candidate.strip()
+    return project.get("title") or project.get("id", "")
 
 
 # ---------------------------------------------------------------------------
@@ -527,11 +543,15 @@ def generate_analysis_context_md(
     channel_avg_retention = insights.get("avg_retention_rate")
     top_topics = insights.get("top_performing_topics", [])
 
-    guest = project.get("meta", {}).get("guest")
-    title = guest["name"] if guest and isinstance(guest, dict) else project["id"]
+    title = _resolve_title(project)
 
     subs_gained = metrics.get("subscribers_gained") or 0
     subs_lost = metrics.get("subscribers_lost") or 0
+
+    video_type = project.get("video_type") or project.get("type") or "?"
+    youtube_id = project.get("youtube_video_id") or project.get("meta", {}).get(
+        "youtube_video_id"
+    ) or "N/A"
 
     return f"""# Analysis Context: {project['id']}
 
@@ -541,9 +561,9 @@ def generate_analysis_context_md(
 ## 영상 정보
 
 - **프로젝트**: {project['id']}
-- **유형**: {project['type']}
+- **유형**: {video_type}
 - **제목/게스트**: {title}
-- **Video ID**: {project.get('meta', {}).get('youtube_video_id') or 'N/A'}
+- **Video ID**: {youtube_id}
 - **수집 시점**: {period}
 
 ## 핵심 지표
@@ -609,19 +629,23 @@ def run_collect(project_dir: Path, period: str, token_path: str | None = None) -
     """Full collection pipeline: collect → analyze → save context."""
     project = load_project(project_dir)
 
-    video_id = project.get("meta", {}).get("youtube_video_id")
+    video_id = project.get("youtube_video_id") or project.get("meta", {}).get(
+        "youtube_video_id"
+    )
     if not video_id:
-        print("Error: youtube_video_id not set in project.json", file=sys.stderr)
+        print("Error: youtube_video_id not set in project.md", file=sys.stderr)
         sys.exit(1)
 
     # Determine published_at
-    filming_date = project.get("meta", {}).get("filming_date")
+    filming_date = project.get("filming_date") or project.get("meta", {}).get(
+        "filming_date"
+    )
     if filming_date:
-        published_at = datetime.fromisoformat(filming_date)
+        published_at = datetime.fromisoformat(filming_date.replace("Z", "+00:00"))
         if published_at.tzinfo is None:
             published_at = published_at.replace(tzinfo=timezone.utc)
     else:
-        published_at = datetime.fromisoformat(project["created_at"])
+        published_at = datetime.fromisoformat(project["created_at"].replace("Z", "+00:00"))
         if published_at.tzinfo is None:
             published_at = published_at.replace(tzinfo=timezone.utc)
 
@@ -638,15 +662,14 @@ def run_collect(project_dir: Path, period: str, token_path: str | None = None) -
     )
     print(f"  Raw data saved: {raw_path.name}")
 
-    # Load history for analysis
-    history = load_history()
+    # Channel dashboard replaces the old _history.json for insight lookups.
+    history = wiki_updater.load_dashboard()
 
     # Run quantitative analyses
     channel_avg_retention = history.get("insights", {}).get("avg_retention_rate")
     retention_analysis = analyze_retention(metrics, channel_avg_retention)
 
-    guest = project.get("meta", {}).get("guest")
-    title = guest["name"] if guest and isinstance(guest, dict) else project["id"]
+    title = _resolve_title(project)
     ctr_analysis = analyze_ctr(metrics, title, history)
 
     traffic_analysis = analyze_traffic(metrics)
